@@ -3,5 +3,13 @@ import { svelte } from '@sveltejs/vite-plugin-svelte'
 import tsconfigPaths from 'vite-tsconfig-paths'
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [svelte(),tsconfigPaths()],
+  plugins: [svelte(), tsconfigPaths()],
+  esbuild: { legalComments: 'none' },
+  build: {
+    terserOptions: {
+      format: {
+        comments: false
+      }
+    },
+  }
 })

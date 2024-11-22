@@ -1,5 +1,6 @@
 <script>
-  import Outlet from "../../core/Router/components/Outlet.svelte";
+    import { Outlet } from "core/Router"
+
 
 
   </script>

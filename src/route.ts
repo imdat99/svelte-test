@@ -9,9 +9,8 @@ const routes: RouteObject[] = [
         index: true,
         lazy: async () => ({
           element: (await import("./Views/pages/Home.svelte")).default,
-        }),
-        // element: Home,
-      },
+        })
+      }
     ],
   },
 ];

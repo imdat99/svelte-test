@@ -14,6 +14,9 @@ import {
   type AgnosticRouteMatch,
   createBrowserHistory,
   createHashHistory,
+  type AgnosticIndexRouteObject,
+  type AgnosticNonIndexRouteObject,
+  type LazyRouteFunction,
 } from "@remix-run/router";
 import { onDestroy, type SvelteComponent } from "svelte";
 import { derived, get, writable, type Readable } from "svelte/store";
@@ -22,19 +25,37 @@ import { getFormSubmissionInfo, type SubmitOptions } from "./dom";
 
 // Create svelte-specific types from the agnostic types in @remix-run/router to
 // export from remix-router-svelte
-export interface RouteObject extends Omit<AgnosticRouteObject, 'children' | 'index'> {
-  children?: RouteObject[];
-  element?: typeof SvelteComponent | null;
-  // TODO: Not yet implemented
-  // errorElement?: typeof SvelteComponent | null;
+export type SvelteComp<T extends Record<string, any> = Record<string, never>> =  __sveltets_2_IsomorphicComponent<T, {
+  [evt: string]: CustomEvent<any>}> | typeof SvelteComponent;
+interface BaseRouteObject<T extends Record<string, any> = Record<string, never>> extends Omit<AgnosticIndexRouteObject, 'lazy' | 'children' | 'index'> {
+  lazy?: LazyRouteFunction<BaseRouteObject>;
+  element?: SvelteComp<T>;
+  errorElement?: SvelteComp<T>;
   hasErrorBoundary?: boolean;
 }
+export type IndexRouteObject = BaseRouteObject & {
+    children?: undefined;
+    index: true;
+}
+export type NestedRouteObject = BaseRouteObject & {
+  children?: RouteObject[];
+  index?: false;
+}
 
-export interface DataRouteObject extends RouteObject {
-  children?: DataRouteObject[];
+export type RouteObject = NestedRouteObject | IndexRouteObject;
+// export interface DataRouteObject extends RouteObject {
+//   children?: DataRouteObject[];
+//   id: string;
+// }
+type DataRouteObject = DataRouteIndexObject | DataNestedRouteObject;  
+export type DataRouteIndexObject = IndexRouteObject & {
   id: string;
 }
 
+export type DataNestedRouteObject = NestedRouteObject & {
+  id: string;
+  children?: DataRouteObject[];
+}
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface RouteMatch<
   ParamKey extends string = string,
@@ -211,7 +232,7 @@ export function useFetcher<TData = unknown>(): Readable<
   class FetcherForm extends Form {
     constructor(config: { props: Record<string, unknown> }) {
       config.props = { ...config.props, fetcherKey };
-      super(config);
+      super(config as any);
     }
   }
 
@@ -284,7 +305,7 @@ export function submitForm(
   }
 }
 
-function enhanceManualRouteObjects(routes: RouteObject[]): AgnosticRouteObject[] {
+function enhanceManualRouteObjects(routes: RouteObject[]): NestedRouteObject[] {
   return routes.map((route) => {
     let routeClone = { ...route };
     if (routeClone.hasErrorBoundary == null) {
@@ -292,7 +313,7 @@ function enhanceManualRouteObjects(routes: RouteObject[]): AgnosticRouteObject[]
       // routeClone.hasErrorBoundary = routeClone.errorElement != null;
       routeClone.hasErrorBoundary = false;
     }
-    if (routeClone.children) {
+    if (routeClone?.children) {
       routeClone.children = enhanceManualRouteObjects(routeClone.children);
     }
     return routeClone as any
